@@ -1,75 +1,78 @@
 <!doctype html>
 <html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#090909">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Gym Tracker">
-<link rel="manifest" href="manifest.json">
-<title>Gym Tracker</title>
-<style>
-:root{color-scheme:dark;--bg:#090909;--panel:#171717;--panel2:#202020;--line:#303030;--muted:#999;--text:#f5f5f5;--accent:#b7f36b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 16px calc(86px + env(safe-area-inset-bottom));max-width:650px;margin-inline:auto}
-header{display:flex;justify-content:space-between;align-items:center;padding:20px 0 16px}h1{font-size:22px;margin:0;letter-spacing:-.5px}.sub{color:var(--muted);font-size:13px;margin-top:5px}
-.pill{border:1px solid var(--line);border-radius:30px;padding:8px 11px;color:var(--accent);font-size:12px}
-nav{position:fixed;bottom:0;left:0;right:0;background:#111e;border-top:1px solid var(--line);backdrop-filter:blur(14px);display:flex;justify-content:center;padding:10px 10px calc(10px + env(safe-area-inset-bottom));z-index:3}
-nav button{background:none;color:var(--muted);border:0;flex:1;padding:8px;font-size:13px}nav button.active{color:var(--accent)}
-h2{font-size:25px;margin:12px 0 4px}h3{font-size:17px;margin:0}.muted{color:var(--muted)}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{background:var(--panel2);border-radius:14px;padding:14px}.stat b{font-size:24px;display:block;margin-top:5px}.stat small{color:var(--muted)}
-button,.btn{border:0;border-radius:12px;padding:12px 15px;background:var(--accent);color:#111;font-weight:700;font-size:14px;cursor:pointer}
-button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}button.danger{background:#3a2020;color:#ffaaaa}
-input{width:100%;background:#101010;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:16px;min-width:0}
-label{font-size:12px;color:var(--muted);display:block;margin:0 0 6px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
-.sethead,.setrow{display:grid;grid-template-columns:35px 1fr 1fr 38px;gap:8px;align-items:center;text-align:center}.sethead{font-size:11px;color:var(--muted);margin:14px 0 7px}.setrow{margin:7px 0}.setrow input{text-align:center;padding:10px 4px}
-.exercise-title{font-weight:700}.exercise{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
-.exercise:first-child{border:0;padding-top:0;margin-top:0}
-.full{width:100%;margin-top:10px}.empty{text-align:center;padding:28px 10px;color:var(--muted)}
-.hidden{display:none!important}.history-item{padding:13px 0;border-bottom:1px solid var(--line)}.history-item:last-child{border:0}
-.small{font-size:12px}.topgap{margin-top:18px}
-</style>
-</head>
-<body>
-<header><div><h1>GYM TRACKER</h1><div class="sub">Твой прогресс. Твои правила.</div></div><div class="pill">● МОЙ ЗАЛ</div></header>
-<main id="app">
-<section id="workout">
-<div class="row"><div><div class="muted small" id="today"></div><h2>Тренировка</h2></div><button class="secondary" id="finish">Завершить</button></div>
-<div class="card"><div class="row"><div><h3>Текущая тренировка</h3><div class="sub">Добавляй упражнения и записывай подходы</div></div></div>
-<div id="exercises"><div class="empty">Пока нет упражнений.<br>Добавь первое упражнение ниже.</div></div>
-<button class="full" id="addExercise">＋ Добавить упражнение</button></div>
-<div class="stats"><div class="stat"><small>Упражнений</small><b id="exerciseCount">0</b></div><div class="stat"><small>Всего подходов</small><b id="setCount">0</b></div></div>
-</section>
-<section id="history" class="hidden"><h2>История</h2><div class="sub">Твои сохранённые тренировки</div><div id="historyList" class="card"></div></section>
-<section id="progress" class="hidden"><h2>Прогресс</h2><div class="sub">Личные показатели по сохранённым тренировкам</div><div id="progressContent"></div></section>
-</main>
-<nav><button class="active" data-tab="workout">Тренировка</button><button data-tab="history">История</button><button data-tab="progress">Прогресс</button></nav>
-<script>
-const $=s=>document.querySelector(s);
-let exercises=[], workouts=JSON.parse(localStorage.getItem('gym_workouts')||'[]');
-const dateLabel=()=>new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
-$('#today').textContent=dateLabel();
-function save(){localStorage.setItem('gym_workouts',JSON.stringify(workouts))}
-function render(){
- const root=$('#exercises');
- if(!exercises.length)root.innerHTML='<div class="empty">Пока нет упражнений.<br>Добавь первое упражнение ниже.</div>';
- else root.innerHTML=exercises.map((e,i)=>`<div class="exercise"><div class="row"><div class="exercise-title">${escapeHtml(e.name)}</div><button class="secondary small" onclick="removeExercise(${i})">Удалить</button></div><div class="sethead"><span>№</span><span>Вес, кг</span><span>Повторы</span><span></span></div>${e.sets.map((s,j)=>`<div class="setrow"><span>${j+1}</span><input aria-label="Вес" type="number" min="0" step="0.5" placeholder="0" value="${s.weight}" onchange="changeSet(${i},${j},'weight',this.value)"><input aria-label="Повторения" type="number" min="0" step="1" placeholder="0" value="${s.reps}" onchange="changeSet(${i},${j},'reps',this.value)"><button class="secondary" style="padding:9px" onclick="removeSet(${i},${j})">×</button></div>`).join('')}<button class="secondary full" onclick="addSet(${i})">＋ Добавить подход</button></div>`).join('');
- $('#exerciseCount').textContent=exercises.length;
- $('#setCount').textContent=exercises.reduce((n,e)=>n+e.sets.length,0);
-}
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-window.removeExercise=i=>{exercises.splice(i,1);render()};
-window.addSet=i=>{exercises[i].sets.push({weight:'',reps:''});render()};
-window.removeSet=(i,j)=>{exercises[i].sets.splice(j,1);render()};
-window.changeSet=(i,j,k,v)=>{exercises[i].sets[j][k]=v};
-$('#addExercise').onclick=()=>{let name=prompt('Название упражнения:');if(name&&name.trim()){exercises.push({name:name.trim(),sets:[{weight:'',reps:''}]});render()}};
-$('#finish').onclick=()=>{if(!exercises.length){alert('Сначала добавь хотя бы одно упражнение.');return}let clean=exercises.map(e=>({...e,sets:e.sets.filter(s=>s.weight!==''||s.reps!=='')})).filter(e=>e.sets.length);if(!clean.length){alert('Заполни хотя бы один подход.');return}workouts.unshift({date:new Date().toISOString(),exercises:clean});save();exercises=[];render();renderHistory();renderProgress();alert('Тренировка сохранена!')};
-function renderHistory(){let el=$('#historyList');if(!workouts.length){el.innerHTML='<div class="empty">Сохранённых тренировок пока нет.</div>';return}el.innerHTML=workouts.map((w,i)=>`<div class="history-item"><div class="row"><b>${new Date(w.date).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'})}</b><button class="secondary small" onclick="deleteWorkout(${i})">Удалить</button></div><div class="muted small" style="margin-top:7px">${w.exercises.map(e=>`${escapeHtml(e.name)} (${e.sets.length} подх.)`).join(' · ')}</div></div>`).join('')}
-window.deleteWorkout=i=>{if(confirm('Удалить эту тренировку?')){workouts.splice(i,1);save();renderHistory();renderProgress()}};
-function renderProgress(){let el=$('#progressContent');let count=workouts.length;let all=workouts.flatMap(w=>w.exercises);let total=all.reduce((n,e)=>n+e.sets.length,0);let best={};all.forEach(e=>e.sets.forEach(s=>{let v=Number(s.weight);if(s.weight!==''&&(!best[e.name]||v>best[e.name]))best[e.name]=v}));el.innerHTML=`<div class="stats topgap"><div class="stat"><small>Тренировок</small><b>${count}</b></div><div class="stat"><small>Подходов всего</small><b>${total}</b></div></div><div class="card"><h3>Лучший записанный вес</h3>${Object.keys(best).length?Object.entries(best).map(([n,v])=>`<div class="history-item row"><span>${escapeHtml(n)}</span><b>${v} кг</b></div>`).join(''):'<div class="empty">Пока нет данных. Сохрани первую тренировку.</div>'}</div>`}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));['workout','history','progress'].forEach(id=>$('#'+id).classList.toggle('hidden',id!==b.dataset.tab));if(b.dataset.tab==='history')renderHistory();if(b.dataset.tab==='progress')renderProgress()});
-render();renderHistory();renderProgress();
-if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
-</script>
-</body></html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#090909" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Gym Tracker" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css">
+    <script src="./scripts.js" defer></script>
+    <title>Gym Tracker</title>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>GYM TRACKER</h1>
+        <div class="sub">Твой прогресс. Твои правила.</div>
+      </div>
+      <div class="pill">● МОЙ ЗАЛ</div>
+    </header>
+    <main id="app">
+      <section id="workout">
+        <div class="row">
+          <div>
+            <div class="muted small" id="today"></div>
+            <h2>Тренировка</h2>
+          </div>
+          <button class="secondary" id="finish">Завершить</button>
+        </div>
+        <div class="card">
+          <div class="row">
+            <div>
+              <h3>Текущая тренировка</h3>
+              <div class="sub">Добавляй упражнения и записывай подходы</div>
+            </div>
+          </div>
+          <div id="exercises">
+            <div class="empty">
+              Пока нет упражнений.<br />Добавь первое упражнение ниже.
+            </div>
+          </div>
+          <button class="full" id="addExercise">＋ Добавить упражнение</button>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <small>Упражнений</small><b id="exerciseCount">0</b>
+          </div>
+          <div class="stat">
+            <small>Всего подходов</small><b id="setCount">0</b>
+          </div>
+        </div>
+      </section>
+      <section id="history" class="hidden">
+        <h2>История</h2>
+        <div class="sub">Твои сохранённые тренировки</div>
+        <div id="historyList" class="card"></div>
+      </section>
+      <section id="progress" class="hidden">
+        <h2>Прогресс</h2>
+        <div class="sub">Личные показатели по сохранённым тренировкам</div>
+        <div id="progressContent"></div>
+      </section>
+    </main>
+    <nav>
+      <button class="active" data-tab="workout">Тренировка</button
+      ><button data-tab="history">История</button
+      ><button data-tab="progress">Прогресс</button>
+    </nav>
+  </body>
+</html>
